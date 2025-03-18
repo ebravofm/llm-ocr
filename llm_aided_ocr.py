@@ -32,7 +32,6 @@ config = DecoupleConfig(RepositoryEnv('.env'))
 
 USE_LOCAL_LLM = config.get("USE_LOCAL_LLM", default=False, cast=bool)
 API_PROVIDER = config.get("API_PROVIDER", default="OPENAI", cast=str) # OPENAI or CLAUDE
-ANTHROPIC_API_KEY = config.get("ANTHROPIC_API_KEY", default="your-anthropic-api-key", cast=str)
 OPENAI_API_KEY = config.get("OPENAI_API_KEY", default="your-openai-api-key", cast=str)
 CLAUDE_MODEL_STRING = config.get("CLAUDE_MODEL_STRING", default="claude-3-haiku-20240307", cast=str)
 CLAUDE_MAX_TOKENS = 4096 # Maximum allowed tokens for Claude API
@@ -321,7 +320,7 @@ async def generate_completion_from_openai(prompt: str, max_tokens: int = 5000) -
                 response = await openai_client.chat.completions.create(
                     model=OPENAI_COMPLETION_MODEL,
                     messages=[{"role": "user", "content": chunk}],
-                    max_tokens=adjusted_max_tokens,
+                    max_tokens=OPENAI_MAX_TOKENS - TOKEN_CUSHION,
                     temperature=0.7,
                 )
                 result = response.choices[0].message.content
@@ -425,7 +424,7 @@ def convert_pdf_to_images(input_pdf_file_path: str, max_pages: int = 0, skip_fir
 
 def ocr_image(image):
     preprocessed_image = preprocess_image(image)
-    return pytesseract.image_to_string(preprocessed_image)
+    return pytesseract.image_to_string(preprocessed_image, lang='spa')
 
 async def process_chunk(chunk: str, prev_context: str, chunk_index: int, total_chunks: int, reformat_as_markdown: bool, suppress_headers_and_page_numbers: bool) -> Tuple[str, str]:
     logging.info(f"Processing chunk {chunk_index + 1}/{total_chunks} (length: {len(chunk):,} characters)")
@@ -623,7 +622,7 @@ async def main():
     try:
         # Suppress HTTP request logs
         logging.getLogger("httpx").setLevel(logging.WARNING)
-        input_pdf_file_path = '160301289-Warren-Buffett-Katharine-Graham-Letter.pdf'
+        input_pdf_file_path = 'pdf/test.pdf'
         max_test_pages = 0
         skip_first_n_pages = 0
         reformat_as_markdown = True
